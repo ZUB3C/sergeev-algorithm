@@ -1,15 +1,18 @@
 from enum import Enum
 from fractions import Fraction
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Tuple, TypeAlias, Union
+
+FractionLike: TypeAlias = Union[Fraction, int]
 
 
 class ComparisonSign(Enum):
     LESS = "<"
     EQUAL = "="
     GREATER = ">"
+    UNKNOWN = "V"
 
 
-class SergeevAlgorithmResponse(NamedTuple):
+class AlgorithmResponse(NamedTuple):
     condition_numbers: Tuple[
         Fraction,
         Fraction,
