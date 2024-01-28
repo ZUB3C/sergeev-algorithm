@@ -1,29 +1,11 @@
 import math
-from enum import Enum
 from fractions import Fraction
 from itertools import product
-from typing import NamedTuple, Optional, Tuple, Union
+from typing import Union
 
 from tqdm import tqdm
 
-
-class ComparisonSign(Enum):
-    LESS = "<"
-    EQUAL = "="
-    GREATER = ">"
-
-
-class SergeevAlgorithmResponse(NamedTuple):
-    condition_numbers: Tuple[
-        Fraction,
-        Fraction,
-        Fraction,
-        Fraction,
-    ]
-    comparison_sign: ComparisonSign
-    iterations_count: int
-    intermediate_parameters: Tuple[Tuple[Fraction, Fraction, Fraction, Fraction], ...]
-    steps: Tuple[int, ...]
+from custom_types import ComparisonSign, SergeevAlgorithmResponse
 
 
 def convert_to_fraction(value: Union[Fraction, int]) -> Fraction:
@@ -52,7 +34,6 @@ def get_sergeev_algorithm_iterations_count(
     iterations_count = 0
     intermediate_parameters = []
     steps = []
-    step_number = None
 
     while True:
         if b > a and d > c:
@@ -89,62 +70,6 @@ def get_sergeev_algorithm_iterations_count(
     )
 
 
-def format_fraction_latex(frac: Union[Fraction, int]) -> str:
-    if isinstance(frac, Fraction):
-        if frac.denominator == 1:
-            return str(frac.numerator)
-        return f"\\frac{{{frac.numerator}}}{{{frac.denominator}}}"
-    return str(frac)
-
-
-def get_log_latex(base: Union[Fraction, int], argument: Union[Fraction, int]) -> str:
-    base_latex = format_fraction_latex(base)
-    argument_latex = format_fraction_latex(argument)
-    return f"\\log_{{{base_latex}}} {{{argument_latex}}}"
-
-
-def create_latex_code_from_response(response: SergeevAlgorithmResponse) -> str:
-    def format_step(
-        step: int,
-        step_number: int,
-        logarithm_params: Tuple[Fraction, Fraction, Fraction, Fraction],
-        comparison_sign: Optional[ComparisonSign] = None,
-    ) -> str:
-        a, b, c, d = logarithm_params
-        log_a_b = get_log_latex(a, b)
-        log_c_d = get_log_latex(c, d)
-        step_number_to_roman = {0: "Condition", 1: "I", 2: "II", 3: "III"}
-        comparison_sign_str: str = comparison_sign.value if comparison_sign else "\\vee"
-        return (
-            f"{step_number}) \\quad \\mathrm{{{step_number_to_roman[step]}}}: {log_a_b}"
-            f"&{comparison_sign_str} {log_c_d} \\\\"
-        )
-
-    if response.comparison_sign == ComparisonSign.EQUAL:
-        lines = [
-            format_step(0, 0, response.condition_numbers),
-            format_step(3, 1, response.condition_numbers, comparison_sign=ComparisonSign.EQUAL),
-        ]
-    else:
-        lines = [format_step(0, 0, response.condition_numbers)]
-
-        for i, (step, params) in enumerate(
-            zip(response.steps, response.intermediate_parameters[:-1]), start=1
-        ):
-            lines.append(format_step(step, i, params))
-        lines.append(
-            format_step(
-                step=3,
-                step_number=i + 1,
-                logarithm_params=response.intermediate_parameters[-1],
-                comparison_sign=response.comparison_sign,
-            )
-        )
-
-    lines_str: str = "\n".join(lines)
-    return f"\\begin{{align*}}\n {lines_str}\n \\end{{align*}}"
-
-
 def is_algorithm_correct(response: SergeevAlgorithmResponse) -> bool:
     a, b, c, d = response.condition_numbers
     log1 = math.log(b, a)
@@ -177,7 +102,7 @@ def find_log_params_with_max_iterations_count() -> None:
 if __name__ == "__main__":
     # a, b, c, d = 23, 6, 89, 13
     a, b, c, d = 11, 12, 12, 13
-    r = get_sergeev_algorithm_iterations_count(a, b, c, d)
-    for i in r.intermediate_parameters:
+    response = get_sergeev_algorithm_iterations_count(a, b, c, d)
+    for i in response.intermediate_parameters:
         print(i)
-    print(r.iterations_count)
+    print(response.iterations_count)
