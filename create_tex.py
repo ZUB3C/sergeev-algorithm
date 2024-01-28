@@ -1,9 +1,9 @@
 import sys
 
 from main import (
-    get_sergeev_algorithm_iterations_count,
-    create_latex_code_from_response,
     SergeevAlgorithmResponse,
+    create_latex_code_from_response,
+    get_sergeev_algorithm_iterations_count,
 )
 
 sys.set_int_max_str_digits(10**8)
@@ -23,7 +23,9 @@ def create_tex_file(response: SergeevAlgorithmResponse) -> None:
     preamble_str = "\n".join(preamble_linex)
     latex_src = create_latex_code_from_response(response)
     tex = f"{preamble_str}\n\n{latex_src}\n\n\\end{{document}}\n"
-    file_name = f'sergeev-algorithm-{"_".join(map(str, [i.numerator for i in response.condition_numbers]))}'
+    file_name = (
+        f'sergeev-algorithm-{"_".join([str(i.numerator) for i in response.condition_numbers])}'
+    )
     with open(f"{file_name}.tex", "wt") as f:
         f.write(tex)
 

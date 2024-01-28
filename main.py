@@ -93,10 +93,8 @@ def format_fraction_latex(frac: Union[Fraction, int]) -> str:
     if isinstance(frac, Fraction):
         if frac.denominator == 1:
             return str(frac.numerator)
-        else:
-            return f"\\frac{{{frac.numerator}}}{{{frac.denominator}}}"
-    else:
-        return str(frac)
+        return f"\\frac{{{frac.numerator}}}{{{frac.denominator}}}"
+    return str(frac)
 
 
 def get_log_latex(base: Union[Fraction, int], argument: Union[Fraction, int]) -> str:
@@ -117,7 +115,10 @@ def create_latex_code_from_response(response: SergeevAlgorithmResponse) -> str:
         log_c_d = get_log_latex(c, d)
         step_number_to_roman = {0: "Condition", 1: "I", 2: "II", 3: "III"}
         comparison_sign_str: str = comparison_sign.value if comparison_sign else "\\vee"
-        return f"{step_number}) \\quad \\mathrm{{{step_number_to_roman[step]}}}: {log_a_b} &{comparison_sign_str} {log_c_d} \\\\"
+        return (
+            f"{step_number}) \\quad \\mathrm{{{step_number_to_roman[step]}}}: {log_a_b}"
+            f"&{comparison_sign_str} {log_c_d} \\\\"
+        )
 
     if response.comparison_sign == ComparisonSign.EQUAL:
         lines = [
@@ -151,10 +152,9 @@ def is_algorithm_correct(response: SergeevAlgorithmResponse) -> bool:
     sign = response.comparison_sign
     if sign == ComparisonSign.GREATER:
         return log1 > log2
-    elif sign == ComparisonSign.LESS:
+    if sign == ComparisonSign.LESS:
         return log1 < log2
-    else:
-        return log1 == log2
+    return log1 == log2
 
 
 def find_log_params_with_max_iterations_count() -> None:
