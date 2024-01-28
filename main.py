@@ -1,30 +1,29 @@
-import json
 import math
+from enum import Enum
 from fractions import Fraction
 from itertools import product
-from typing import NamedTuple, Tuple, Union, Literal, Optional
+from typing import NamedTuple, Optional, Tuple, Union
 
 from tqdm import tqdm
 
 
+class ComparisonSign(Enum):
+    LESS = "<"
+    EQUAL = "="
+    GREATER = ">"
+
+
 class SergeevAlgorithmResponse(NamedTuple):
     condition_numbers: Tuple[
-        Union[Fraction],
-        Union[Fraction],
-        Union[Fraction],
-        Union[Fraction],
+        Fraction,
+        Fraction,
+        Fraction,
+        Fraction,
     ]
-    comparison_sign: Literal["<", "=", ">"]
+    comparison_sign: ComparisonSign
     iterations_count: int
     intermediate_parameters: Tuple[Tuple[Fraction, Fraction, Fraction, Fraction], ...]
-    steps: Tuple[Literal[1, 2, 3], ...]
-
-
-class FractionEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Fraction):
-            return str(obj)
-        return super().default(obj)
+    steps: Tuple[int, ...]
 
 
 def convert_to_fraction(value: Union[Fraction, int]) -> Fraction:
@@ -45,10 +44,10 @@ def get_sergeev_algorithm_iterations_count(
         # Logarithms are equals
         return SergeevAlgorithmResponse(
             condition_numbers=numbers,
-            comparison_sign="=",
+            comparison_sign=ComparisonSign.EQUAL,
             iterations_count=0,
-            intermediate_parameters=tuple(),
-            steps=tuple(),
+            intermediate_parameters=(),
+            steps=(),
         )
     iterations_count = 0
     intermediate_parameters = []
@@ -67,11 +66,11 @@ def get_sergeev_algorithm_iterations_count(
             log1 = math.log(b, a)
             log2 = math.log(d, c)
             if log1 == log2:
-                sign = "="
+                sign = ComparisonSign.EQUAL
             elif log1 > log2:
-                sign = ">"
+                sign = ComparisonSign.GREATER
             else:
-                sign = "<"
+                sign = ComparisonSign.LESS
             intermediate_parameters.append((a, b, c, d))
             step_number = 3
             steps.append(step_number)
@@ -111,19 +110,19 @@ def create_latex_code_from_response(response: SergeevAlgorithmResponse) -> str:
         step: int,
         step_number: int,
         logarithm_params: Tuple[Fraction, Fraction, Fraction, Fraction],
-        comparison_sign: Optional[Literal["<", "=", ">"]] = None,
+        comparison_sign: Optional[ComparisonSign] = None,
     ) -> str:
         a, b, c, d = logarithm_params
         log_a_b = get_log_latex(a, b)
         log_c_d = get_log_latex(c, d)
         step_number_to_roman = {0: "Condition", 1: "I", 2: "II", 3: "III"}
-        comparison_sign = "\\vee" if not comparison_sign else comparison_sign
-        return f"{step_number}) \\quad \\mathrm{{{step_number_to_roman[step]}}}: {log_a_b} &{comparison_sign} {log_c_d} \\\\"
+        comparison_sign_str: str = comparison_sign.value if comparison_sign else "\\vee"
+        return f"{step_number}) \\quad \\mathrm{{{step_number_to_roman[step]}}}: {log_a_b} &{comparison_sign_str} {log_c_d} \\\\"
 
-    if response.comparison_sign == "=":
+    if response.comparison_sign == ComparisonSign.EQUAL:
         lines = [
             format_step(0, 0, response.condition_numbers),
-            format_step(3, 1, response.condition_numbers, comparison_sign="="),
+            format_step(3, 1, response.condition_numbers, comparison_sign=ComparisonSign.EQUAL),
         ]
     else:
         lines = [format_step(0, 0, response.condition_numbers)]
@@ -134,17 +133,15 @@ def create_latex_code_from_response(response: SergeevAlgorithmResponse) -> str:
             lines.append(format_step(step, i, params))
         lines.append(
             format_step(
-                3,
-                i + 1,
-                response.intermediate_parameters[-1],
+                step=3,
+                step_number=i + 1,
+                logarithm_params=response.intermediate_parameters[-1],
                 comparison_sign=response.comparison_sign,
             )
         )
 
-    lines = "\n".join(lines)
-    latex_src = f"\\begin{{align*}}\n {lines}\n \\end{{align*}}"
-
-    return latex_src
+    lines_str: str = "\n".join(lines)
+    return f"\\begin{{align*}}\n {lines_str}\n \\end{{align*}}"
 
 
 def is_algorithm_correct(response: SergeevAlgorithmResponse) -> bool:
@@ -152,9 +149,9 @@ def is_algorithm_correct(response: SergeevAlgorithmResponse) -> bool:
     log1 = math.log(b, a)
     log2 = math.log(d, c)
     sign = response.comparison_sign
-    if sign == ">":
+    if sign == ComparisonSign.GREATER:
         return log1 > log2
-    elif sign == "<":
+    elif sign == ComparisonSign.LESS:
         return log1 < log2
     else:
         return log1 == log2
